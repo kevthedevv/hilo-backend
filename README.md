@@ -1,2 +1,0 @@
-# hilo-backend
-hilo-backend
