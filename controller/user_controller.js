@@ -40,7 +40,22 @@ const signupUser = async (req, res) => {
      }
 };
 
+const getAllUsers = async (req, res) => {
+     try {
+         // Fetch all users from the database
+         const users = await Credentials.find();
+ 
+         // Respond with status 200 and the list of users
+         res.status(200).json(users);
+     } catch (error) {
+         res.status(500).json({ error: error.message });
+     }
+ };
+
+
+
 module.exports = {
      signupUser,
-     loginUser
+     loginUser,
+     getAllUsers
 }
