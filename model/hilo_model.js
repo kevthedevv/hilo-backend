@@ -2,28 +2,39 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
+
+const betSchema = new Schema({
+     username: {
+          type: String,   // The username of the player
+         
+     },
+     bet_amount: {
+          type: Number,   // The amount the player bet
+         
+     },
+     bet_type: {
+          type: String,   // 'High' or 'Low' - what the player bet on
+          
+     }
+});
 // Define the Game Schema
-const gameSchema = new Schema({
+const hiloSchema = new Schema({
      game_id: {
           type: String,   // Unique identifier for the game round
           required: true,
           unique: true
      },
-     initial_number: {
-          type: String,   // The starting number shown (e.g., "321")
-          required: true
-     },
-     middle_digit: {
+     second_digit: {
           type: String,   // Revealed middle digit (e.g., "2" in "x2x")
-          required: true
+         
      },
      third_digit: {
           type: String,   // Revealed third digit (e.g., "3" in "x23")
-          required: true
+          
      },
      first_digit: {
           type: String,   // Revealed first digit (e.g., "4" in "423")
-          required: true
+          
      },
      high_bets: {
           type: Number,   // Total amount of bets placed on high
@@ -45,10 +56,7 @@ const gameSchema = new Schema({
           type: String,   // 'High' or 'Low' depending on the winning outcome
           default: null   // Set to 'High' or 'Low' after the game ends
      },
-     prize_distribution: {
-          type: Map,   // Map to hold the prize distribution based on bets
-          of: Number    // e.g., { "high": 1000, "low": 500 }
-     },
+     betted: [betSchema],
      createdAt: {
           type: Date,
           default: Date.now   // Automatically sets the creation date
@@ -62,4 +70,4 @@ const gameSchema = new Schema({
 });
 
 // Export the Game model
-module.exports = mongoose.model('Game', gameSchema);
+module.exports = mongoose.model('Hilo', hiloSchema);

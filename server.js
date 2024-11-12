@@ -4,6 +4,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require("cors");
 const user_route = require('./routes/user')
+const hilo_route = require('./routes/hilo')
 const app = express()
 
 
@@ -27,6 +28,8 @@ app.use((req, res, next) => {
 app.use(express.json())
 
 app.use('/api/user', user_route)
+app.use('/api/hilo', hilo_route)
+
 
 
 mongoose.connect(process.env.MONGO_URI)
