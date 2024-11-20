@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const {
-     createHilo,
+     createNewGame,
      placeBet,
      updateGameResult
 } = require('../controller/hilo_controller')
@@ -9,7 +9,8 @@ const {
 
 
 /**CREATE NEW Credentials */
-router.post('/start-game', createHilo)
+router.post('/start-game', createNewGame)
 router.post('/place-bet', placeBet);
+router.patch('/update-game', updateGameResult);
 
 module.exports = router

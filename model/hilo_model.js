@@ -25,15 +25,15 @@ const hiloSchema = new Schema({
           unique: true
      },
      second_digit: {
-          type: String,   // Revealed middle digit (e.g., "2" in "x2x")
+          type: Number,   // Revealed middle digit (e.g., "2" in "x2x")
          
      },
      third_digit: {
-          type: String,   // Revealed third digit (e.g., "3" in "x23")
+          type: Number,   // Revealed third digit (e.g., "3" in "x23")
           
      },
      first_digit: {
-          type: String,   // Revealed first digit (e.g., "4" in "423")
+          type: Number,   // Revealed first digit (e.g., "4" in "423")
           
      },
      high_bets: {
