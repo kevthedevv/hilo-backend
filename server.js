@@ -10,6 +10,7 @@ const mongoose = require('mongoose')
 const cors = require("cors");
 const user_route = require('./routes/user')
 const hilo_route = require('./routes/hilo')
+const { startRumbling, startGameTimer } = require('./engines/hilo_engine');
 
 const io = socketIo(server, {
      cors: {
@@ -44,46 +45,16 @@ app.use('/api/hilo', hilo_route)
 
 
 
-
-let seconds = 60; // Initial countdown value
-// let gameId; // Store the current game ID
-
+//All client's(UI) emit receiver to handles the event.
 io.on('connection', (socket) => {
-     console.log('A user connected');
-
      socket.on('newGame', (data) => { //received from the client to start the timer
-          gameId = data.game_id; // Set the current game_id
-          startGameTimer(); // Start the timer
-     });
-
-     socket.on('restartTimer', () => {
-          console.log('Restarting the game timer...');
-          resetGameTimer(); // Reset game state
-          startGameTimer(); // Restart the timer
+          startGameTimer(socket, io);
+          startRumbling(socket, io); // Start the timer
      });
 
      socket.on('disconnect', () => {
           console.log('A user disconnected');
      });
-
-     function startGameTimer() {
-          const interval = setInterval(() => {
-               seconds -= 1;
-               io.emit('timerUpdate', { seconds }); // Broadcast timer update to all clients
-               // io.emit('timerUpdate', { seconds, gameId }); // Broadcast timer update to all clients
-               if (seconds <= 0) {
-                    clearInterval(interval);
-                    io.emit('restartTimer', true)
-                    resetGameTimer(); // Reset game state for the next round
-               }
-          }, 1000);
-     }
-
-     function resetGameTimer() {
-          seconds = 60; // Reset the timer
-          // gameId = null; // Clear the current game ID
-          // // Reset any other game state variables if needed
-     }
 });
 
 

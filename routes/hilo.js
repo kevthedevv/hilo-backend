@@ -10,7 +10,7 @@ const {
 
 /**CREATE NEW Credentials */
 router.post('/start-game', createNewGame)
-router.post('/place-bet', placeBet);
+router.patch('/place-bet', placeBet);
 router.patch('/update-game', updateGameResult);
 
 module.exports = router

@@ -27,12 +27,11 @@ const createNewGame = async (req, res, io) => {
                low_bets: 0,
                high_winners: 0,
                low_winners: 0,
-               result: null,    // Result not available at this point
+               result: null,    // high or low - Result not available at this point
                betted: []       // No bets placed yet
           });
 
           req.io.emit('newGame', { game_id: newGame.game_id }); // use the game_id and send out to all users
-
           res.status(200).json({
                message: 'Game started successfully',
                game_id: newGame.game_id // return the game_id to the frontend.
@@ -44,8 +43,6 @@ const createNewGame = async (req, res, io) => {
           });
      }
 };
-
-
 const placeBet = async (req, res, io) => {
      const { game_id, username, bet_amount, bet_type } = req.body;
 
@@ -70,39 +67,41 @@ const placeBet = async (req, res, io) => {
           // Save the updated game
           await game.save();
 
+          // Calculate total pool of bets
+          const totalBets = game.high_bets + game.low_bets;
+
+          // Calculate potential payout odds for both sides
+          const highPayoutOdds = totalBets / (game.high_bets || 1); // Avoid division by zero
+          const lowPayoutOdds = totalBets / (game.low_bets || 1); // Avoid division by zero
+
+          // Calculate the user's potential payout based on their latest bet
+          const potentialPayout = bet_type === 'high'
+               ? bet_amount * highPayoutOdds
+               : bet_amount * lowPayoutOdds;
+
+          // Emit updated info to all clients
           req.io.emit('betPlaced', {
                game_id: game.game_id,
                high_bets: game.high_bets,
                low_bets: game.low_bets,
-               betted: game.betted
+               payout_odds: {
+                    high: highPayoutOdds.toFixed(2),
+                    low: lowPayoutOdds.toFixed(2),
+               },
+               potential_payout: potentialPayout.toFixed(2), // User's potential payout
           });
-
-          const totalBets = game.high_bets + game.low_bets;
-          const myBets = game.betted.filter(bet => bet.username === username);
-          const totalMyHighBets = myBets
-               .filter(bet => bet.bet_type === 'high')
-               .reduce((acc, bet) => acc + bet.bet_amount, 0);
-
-          const totalMyLowBets = myBets
-               .filter(bet => bet.bet_type === 'low')
-               .reduce((acc, bet) => acc + bet.bet_amount, 0);
-
-          const mostRecentBetType = myBets.length > 0 ? myBets[myBets.length - 1].bet_type : null;
 
           res.status(200).json({
                message: 'Bet placed successfully',
                game,
                high_bets: game.high_bets,
                low_bets: game.low_bets,
-               my_bets: myBets,  // Return the user's individual bets
                total_bets: totalBets,
-               total_my_bets: {
-                    high: totalMyHighBets,  // Return total amount of high bets
-                    low: totalMyLowBets     // Return total amount of low bets
+               payout_odds: {
+                    high: highPayoutOdds.toFixed(2),
+                    low: lowPayoutOdds.toFixed(2),
                },
-               bet_type: mostRecentBetType
-
-               //my_bets: game.betted.bet_amount
+               potential_payout: potentialPayout.toFixed(2), // Include user's potential payout
           });
      } catch (error) {
           res.status(500).json({
@@ -112,10 +111,9 @@ const placeBet = async (req, res, io) => {
      }
 };
 
-
-
 const updateGameResult = async (req, res, io) => {
-     const { game_id, first_digit, second_digit, third_digit } = req.body;
+     console.log("UUUUUUUUUUPDATE BACKEND")
+     const { game_id, first_digit, second_digit, third_digit, result } = req.body;
 
      console.log('Route hit: /api/hilo/update-game');
 
@@ -128,7 +126,7 @@ const updateGameResult = async (req, res, io) => {
           // Update the game and return the updated document
           const updatedGame = await Hilo.findOneAndUpdate(
                { game_id }, // Filter
-               { first_digit, second_digit, third_digit }, // Update
+               { first_digit, second_digit, third_digit, result }, // Update
                { new: true, runValidators: true } // Options
           );
 
@@ -145,6 +143,7 @@ const updateGameResult = async (req, res, io) => {
                first_digit: updatedGame.first_digit,
                second_digit: updatedGame.second_digit,
                third_digit: updatedGame.third_digit,
+               result: updatedGame.result
           });
      } catch (error) {
           console.error('Failed to update game result:', error);
@@ -155,85 +154,6 @@ const updateGameResult = async (req, res, io) => {
      }
 };
 
-
-
-// const updateGameResult = async (req, res, io) => {
-//      const { game_id, first_digit, second_digit, third_digit } = req.body;
-
-//      try {
-//           // Find the game by game_id
-//           const game = await Hilo.findOne({ game_id });
-
-//           if (!game) {
-//                return res.status(404).json({ message: 'Game not found' });
-//           }
-
-//           // Check if all digits have been provided
-//           if (!first_digit || !second_digit || !third_digit) {
-//                return res.status(400).json({ message: 'All digits must be provided to finalize the game' });
-//           }
-
-//           // Update the digits in the game document
-//           game.first_digit = first_digit;
-//           game.second_digit = second_digit;
-//           game.third_digit = third_digit;
-
-//           // Calculate the current number from the digits
-//           const currentNumber = parseInt(first_digit) * 100 + parseInt(second_digit) * 10 + parseInt(third_digit);
-
-//           // Retrieve the previous game result, if any
-//           const previousGame = await Hilo.findOne().sort({ createdAt: -1 }).limit(1); // Find the most recent game
-
-//           let result = null;
-
-//           // If there is a previous game, compare the numbers
-//           if (previousGame) {
-//                const previousNumber = parseInt(previousGame.first_digit || '0') * 100 + parseInt(previousGame.second_digit || '0') * 10 + parseInt(previousGame.third_digit || '0');
-
-//                // Compare the current and previous numbers to determine the result
-//                if (currentNumber > previousNumber) {
-//                     result = 'High';
-//                } else if (currentNumber < previousNumber) {
-//                     result = 'Low';
-//                } else {
-//                     result = 'Same'; // If both numbers are equal
-//                }
-//           } else {
-//                // If no previous game exists (first game), we can set a default result or leave it as null
-//                result = 'N/A';  // Or leave as null if you don't want to assign a result for the first game
-//           }
-
-//           // Update the result in the game
-//           game.result = result;
-
-//           // Determine winners based on the result and update the winners count
-//           if (result === 'High') {
-//                game.high_winners = game.betted.filter(bet => bet.result === 'High').length;
-//           } else if (result === 'Low') {
-//                game.low_winners = game.betted.filter(bet => bet.result === 'Low').length;
-//           }
-
-//           // Save the updated game
-//           await game.save();
-
-//           req.io.emit('gameResult', {
-//                game_id: game.game_id,
-//                result: game.result,
-//                high_bets: game.high_bets,
-//                low_bets: game.low_bets
-//           });
-
-//           res.status(200).json({
-//                message: 'Game result updated successfully',
-//                game
-//           });
-//      } catch (error) {
-//           res.status(500).json({
-//                error: 'Failed to update the game result',
-//                details: error.message
-//           });
-//      }
-// };
 
 
 //update the document everytime the user bets. 
